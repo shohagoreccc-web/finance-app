@@ -66,16 +66,7 @@ ${text || "Проанализируй мои финансы"}
 
     const response = await openai.responses.create({
       model: "gpt-4o-mini",
-      input: [
-        {
-          role: "system",
-          content: prompt,
-        },
-        {
-          role: "user",
-          content: text || "Дай анализ",
-        },
-      ],
+      input: prompt + "\n\nВопрос: " + (text || "Дай анализ"),
     });
 
     // 🔥 ВАЖНО — безопасное получение ответа
