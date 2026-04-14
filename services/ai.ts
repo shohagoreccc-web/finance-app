@@ -5,26 +5,35 @@ export const fetchAIAdvice = async (
   debts: any[],
   goals: any[]
 ) => {
-  const res = await fetch("/api/ai", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      text,
-      transactions,
-      debts,
-      goals,
-    }),
-  });
+  try {
+    const res = await fetch("/api/ai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        text,
+        transactions,
+        debts,
+        goals,
+      }),
+    });
 
-  if (!res.ok) {
-    throw new Error("AI error");
+    const data = await res.json();
+
+    // 🔥 теперь показываем реальную ошибку
+    if (!res.ok) {
+      console.log("❌ SERVER ERROR:", data);
+      throw new Error(data.answer || "AI error");
+    }
+
+    return data.answer;
+  } catch (error: any) {
+    console.log("❌ FETCH ERROR:", error);
+    return "Ошибка AI: " + error.message;
   }
-
-  const data = await res.json();
-  return data.answer;
 };
+
 
 // 🧠 Анализ данных (мозг AI)
 export function analyzeData(transactions: any[], debts: any[]) {
@@ -34,16 +43,20 @@ export function analyzeData(transactions: any[], debts: any[]) {
   const categories: Record<string, number> = {};
 
   transactions.forEach((tx) => {
+    const amount = Number(tx.amount) || 0;
+
     if (tx.type === "income") {
-      income += Number(tx.amount);
-    } else {
-      expenses += Number(tx.amount);
+      income += amount;
+    }
+
+    if (tx.type === "expense") {
+      expenses += amount;
 
       if (!categories[tx.category]) {
         categories[tx.category] = 0;
       }
 
-      categories[tx.category] += Number(tx.amount);
+      categories[tx.category] += amount;
     }
   });
 
