@@ -21,16 +21,15 @@ export const fetchAIAdvice = async (
 
     const data = await res.json();
 
-    // 🔥 теперь показываем реальную ошибку
     if (!res.ok) {
-      console.log("❌ SERVER ERROR:", data);
+      console.log("🔥 REAL ERROR:", data);
       throw new Error(data.answer || "AI error");
     }
 
     return data.answer;
   } catch (error: any) {
-    console.log("❌ FETCH ERROR:", error);
-    return "Ошибка AI: " + error.message;
+    console.log("🔥 FETCH ERROR:", error);
+    return "Ошибка: " + error.message;
   }
 };
 
