@@ -80,9 +80,9 @@ ${text || "Проанализируй мои финансы"}
 
     // 🔥 ВАЖНО — безопасное получение ответа
     const answer =
-      response.output_text ||
-      response.output?.[0]?.content?.[0]?.text ||
-      "AI не дал ответ";
+  response.output_text ||
+  (response.output as any)?.[0]?.content?.[0]?.text ||
+  "AI не дал ответ";
 
     return new Response(
       JSON.stringify({
