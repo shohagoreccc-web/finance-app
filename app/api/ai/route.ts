@@ -11,6 +11,7 @@ export async function POST(req: Request) {
 
     const { text, transactions, debts, goals } = body;
 
+    // защита от undefined
     const data = analyzeData(transactions || [], debts || []);
 
     const prompt = `
@@ -27,7 +28,7 @@ export async function POST(req: Request) {
 Долги: ${JSON.stringify(data.debts)}
 
 Вопрос пользователя:
-${text}
+${text || "Проанализируй мои финансы"}
 
 Твоя задача:
 
@@ -75,19 +76,23 @@ ${text}
 ...
 `;
 
-    const response = await openai.chat.completions.create({
+    const response = await openai.responses.create({
       model: "gpt-4o-mini",
-      messages: [
+      input: [
         {
           role: "system",
           content: prompt,
+        },
+        {
+          role: "user",
+          content: text || "Дай анализ",
         },
       ],
     });
 
     return new Response(
       JSON.stringify({
-        answer: response.choices[0].message.content,
+        answer: response.output_text,
       }),
       { status: 200 }
     );
