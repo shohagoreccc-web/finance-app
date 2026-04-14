@@ -22,9 +22,9 @@ export const fetchAIAdvice = async (
     const data = await res.json();
 
     if (!res.ok) {
-      console.log("🔥 REAL ERROR:", data);
-      throw new Error(data.answer || "AI error");
-    }
+    console.log("🔥 REAL ERROR:", data); // теперь работает
+    throw new Error(data.answer || "AI error");
+  }
 
     return data.answer;
   } catch (error: any) {
