@@ -767,11 +767,16 @@ backdropFilter: "blur(20px)",
     {goals.map((g,i)=>{
 
   const saved = safeTransactions
-    .filter(t => t.type === "goal" && t.goalName === g.name)
+    .filter(t =>
+  t.type === "goal" &&
+  t.goalName?.toLowerCase().trim() === g.name?.toLowerCase().trim()
+)
     .reduce((sum, t) => sum + Number(t.amount), 0);
+    
 
 const remaining = Math.max(g.amount - saved, 0);
 const percent = Math.min((saved / g.amount) * 100, 100);
+
   const handleAddToGoal = async (g: any) => {
   const value = prompt("Сколько добавить?");
   if (!value) return;
