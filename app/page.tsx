@@ -453,6 +453,7 @@ const addGoal = async () => {
   setGoalName("");
   setGoalAmount("");
 };
+
   return (
     <>
   <div style={{
@@ -769,8 +770,8 @@ backdropFilter: "blur(20px)",
     .filter(t => t.type === "goal" && t.goalName === g.name)
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
-  const percent = Math.min((saved / g.amount) * 100, 100);
-
+const remaining = Math.max(g.amount - saved, 0);
+const percent = Math.min((saved / g.amount) * 100, 100);
   const handleAddToGoal = async (g: any) => {
   const value = prompt("Сколько добавить?");
   if (!value) return;
@@ -848,8 +849,12 @@ setTimeout(() => setToast(null), 2000);
 </button>
 
       <div style={{fontSize:"12px", opacity:0.6}}>
-        {saved} / {g.amount} {g.currency === "USD" ? "$" : " сум"}
-      </div>
+  Осталось: {remaining} {g.currency === "USD" ? "$" : " сум"}
+</div>
+
+<div style={{fontSize:"12px", opacity:0.5}}>
+  Закрыто: {saved} из {g.amount}
+</div>
 
       <div style={{
         height:"8px",
