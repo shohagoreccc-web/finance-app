@@ -764,44 +764,43 @@ backdropFilter: "blur(20px)",
 {toast && <Toast message={toast.message} type={toast.type} />}
     </div>
 
-    {goals.map((g,i)=>{
+    {goals.map((g, i) => {
 
   const saved = safeTransactions
     .filter(t => t.type === "goal" && t.goalId === g.id)
     .reduce((sum, t) => sum + Number(t.amount), 0);
-    
 
-const remaining = Math.max(g.amount - saved, 0);
-const percent = Math.min((saved / g.amount) * 100, 100);
+  const remaining = Math.max(g.amount - saved, 0);
+  const percent = Math.min((saved / g.amount) * 100, 100);
 
   const handleAddToGoal = async (g: any) => {
-  const value = prompt("Сколько добавить?");
-  if (!value) return;
+    const value = prompt("Сколько добавить?");
+    if (!value) return;
 
-  const amount = Number(value);
+    const amount = Number(value);
 
-  if (isNaN(amount) || amount <= 0) {
-    setToast({ message: "Введите корректную сумму", type: "error" });
-setTimeout(() => setToast(null), 2000);
-    return;
-  }
+    if (isNaN(amount) || amount <= 0) {
+      setToast({ message: "Введите корректную сумму", type: "error" });
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
 
-  try {
-    await addDoc(collection(db, "transactions"), {
-      userId: user.uid,
-      type: "goal",
-      amount: amount,
-      category: "goal",
-      goalName: g.name,
-      currency: g.currency,
-      goalId: g.id,
-      date: new Date(),
-      createdAt: serverTimestamp()
-    });
-  } catch (e) {
-    alert("Ошибка при пополнении");
-  }
-};
+    try {
+      await addDoc(collection(db, "transactions"), {
+        userId: user.uid,
+        type: "goal",
+        amount: amount,
+        category: "goal",
+        goalName: g.name,
+        goalId: g.id, // 🔥 ВАЖНО
+        currency: g.currency,
+        date: new Date(),
+        createdAt: serverTimestamp()
+      });
+    } catch (e) {
+      alert("Ошибка при пополнении");
+    }
+  };
 
   return (
     <div key={i} style={{
@@ -810,54 +809,52 @@ setTimeout(() => setToast(null), 2000);
       borderRadius:"15px",
       marginTop:"10px"
     }}>
+
       <div style={{
-  display:"flex",
-  justifyContent:"space-between",
-  alignItems:"center"
-}}>
-  <div style={{fontWeight:"bold"}}>
-    {g.name}
-  </div>
+        display:"flex",
+        justifyContent:"space-between",
+        alignItems:"center"
+      }}>
+        <div style={{fontWeight:"bold"}}>
+          {g.name}
+        </div>
 
-  <button
-    onClick={() => deleteGoal(g.id)}
-    style={{
-      background:"none",
-      border:"none",
-      color:"#ff4d6d",
-      fontSize:"16px",
-      cursor:"pointer"
-    }}
-  >
-    ❌
-  </button>
-</div>
-<button
-  onClick={()=>{
-    const newName = prompt("Новое название", g.name);
-    const newAmount = prompt("Новая сумма", g.amount);
+        <button
+          onClick={() => deleteGoal(g.id)}
+          style={{
+            background:"none",
+            border:"none",
+            color:"#ff4d6d",
+            fontSize:"16px",
+            cursor:"pointer"
+          }}
+        >
+          ❌
+        </button>
+      </div>
 
-    if (!newName || !newAmount) return;
-  
-  }}
-  style={{
-    background:"none",
-    border:"none",
-    color:"#4dabf7",
-    fontSize:"14px",
-    cursor:"pointer"
-  }}
->
-  ✏️
-</button>
+      <button
+        onClick={() => {
+          const newName = prompt("Новое название", g.name);
+          const newAmount = prompt("Новая сумма", g.amount);
 
-      <div style={{fontSize:"12px", opacity:0.6}}>
-  Осталось: {remaining} {g.currency === "USD" ? "$" : " сум"}
-</div>
+          if (!newName || !newAmount) return;
+        }}
+        style={{
+          background:"none",
+          border:"none",
+          color:"#4dabf7",
+          fontSize:"14px",
+          cursor:"pointer"
+        }}
+      >
+        ✏️
+      </button>
 
-<div style={{fontSize:"12px", opacity:0.5}}>
-  Закрыто: {saved} из {g.amount}
-</div>
+      {/* 🔥 ВОТ ГЛАВНОЕ */}
+      <div style={{ fontSize:"12px", opacity:0.6 }}>
+        Осталось: {remaining} из {g.amount} {g.currency === "USD" ? "$" : "сум"}
+      </div>
 
       <div style={{
         height:"8px",
@@ -873,15 +870,13 @@ setTimeout(() => setToast(null), 2000);
         }}/>
       </div>
 
-     <Button onClick={() => handleAddToGoal(g)}>
-  ➕ Пополнить
-</Button>
+      <Button onClick={() => handleAddToGoal(g)}>
+        ➕ Пополнить
+      </Button>
 
-      </div>
-      )
-      })}
-      </> 
-      )}
+    </div>
+  );
+})}
 
       {/* DEBTS */}
       {page==="debts" && (
