@@ -877,7 +877,8 @@ backdropFilter: "blur(20px)",
     </div>
   );
 })}
-
+</>
+)}
       {/* DEBTS */}
       {page==="debts" && (
         <>
@@ -947,11 +948,12 @@ backdropFilter: "blur(20px)",
   setEditTx={setEditTx}
   updateTransaction={updateTransaction}
 />
+
+{user && (
+  <Navbar page={page} setPage={setPage} />
+)}
+
 </div>
-   {/* 🔥 Navbar вне контейнера */}
-    {user && (
-      <Navbar page={page} setPage={setPage} />
-    )}
   </>
 );
 }
