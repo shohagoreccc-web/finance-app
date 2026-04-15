@@ -767,10 +767,7 @@ backdropFilter: "blur(20px)",
     {goals.map((g,i)=>{
 
   const saved = safeTransactions
-    .filter(t =>
-  t.type === "goal" &&
-  t.goalName?.toLowerCase().trim() === g.name?.toLowerCase().trim()
-)
+    .filter(t => t.type === "goal" && t.goalId === g.id)
     .reduce((sum, t) => sum + Number(t.amount), 0);
     
 
@@ -797,6 +794,7 @@ setTimeout(() => setToast(null), 2000);
       category: "goal",
       goalName: g.name,
       currency: g.currency,
+      goalId: g.id,
       date: new Date(),
       createdAt: serverTimestamp()
     });
