@@ -56,7 +56,6 @@ export const ProfileScreen = ({
         <button style={btn}>Настройки</button>
         <button style={btn}>Поддержка</button>
 
-        {/* 🔥 ВЫХОД ПЕРЕНЕСЛИ СЮДА */}
         <button style={logout} onClick={onLogout}>
           Выйти из аккаунта
         </button>
@@ -66,21 +65,21 @@ export const ProfileScreen = ({
   );
 };
 
-/* ===== СТИЛИ ===== */
+/* ===== СТИЛИ (ИСПРАВЛЕНЫ) ===== */
 
-const container = {
+const container: React.CSSProperties = {
   padding: "20px",
   color: "white"
 };
 
-const profileCard = {
+const profileCard: React.CSSProperties = {
   background: "#1e293b",
   padding: "20px",
   borderRadius: "16px",
   textAlign: "center"
 };
 
-const avatar = {
+const avatar: React.CSSProperties = {
   width: "70px",
   height: "70px",
   borderRadius: "50%",
@@ -92,23 +91,23 @@ const avatar = {
   margin: "0 auto"
 };
 
-const name = {
+const name: React.CSSProperties = {
   marginTop: "10px",
   fontWeight: "600"
 };
 
-const email = {
+const email: React.CSSProperties = {
   fontSize: "12px",
   opacity: 0.6
 };
 
-const statsBox = {
+const statsBox: React.CSSProperties = {
   display: "flex",
   gap: "10px",
   marginTop: "15px"
 };
 
-const stat = {
+const stat: React.CSSProperties = {
   flex: 1,
   background: "#1e293b",
   padding: "12px",
@@ -116,7 +115,7 @@ const stat = {
   textAlign: "center"
 };
 
-const btn = {
+const btn: React.CSSProperties = {
   width: "100%",
   padding: "12px",
   marginTop: "10px",
@@ -126,7 +125,7 @@ const btn = {
   color: "white"
 };
 
-const logout = {
+const logout: React.CSSProperties = {
   width: "100%",
   padding: "12px",
   marginTop: "15px",
