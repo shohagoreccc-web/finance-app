@@ -20,3 +20,18 @@ export const askAI = async (transactions: any, question?: string) => {
     return "Ошибка: " + e.message;
   }
 };
+export const analyzeFinance = (transactions: any[]) => {
+  const income = transactions
+    .filter((t) => t.amount > 0)
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  const expense = transactions
+    .filter((t) => t.amount < 0)
+    .reduce((acc, t) => acc + t.amount, 0);
+
+  return {
+    income,
+    expense,
+    balance: income + expense
+  };
+};
