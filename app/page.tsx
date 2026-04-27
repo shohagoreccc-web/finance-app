@@ -424,7 +424,7 @@ const container = {
   paddingBottom: "100px"
 };
 
-const overlay = {
+const overlay: React.CSSProperties = {
   position: "fixed",
   top: 0,
   left: 0,
