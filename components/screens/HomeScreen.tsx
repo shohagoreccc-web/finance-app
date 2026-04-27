@@ -313,7 +313,7 @@ const adviceBox: React.CSSProperties = {
   marginTop: "10px"
 };
 
-const topRow: React.CSSProperties = {пше
+const topRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   marginTop: "5px"
