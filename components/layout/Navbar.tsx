@@ -1,22 +1,16 @@
 export const Navbar = ({ page, setPage }: any) => {
   return (
     <div style={{
-      position: "fixed",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      margin: "0 auto",
-      width: "100%",
-      maxWidth: "400px",
-      display: "flex",
-      justifyContent: "space-around",
-      padding: "12px 0",
-      background: "#1e1e2f",
-      borderTop: "1px solid #333",
-      borderRadius: "16px 16px 0 0",
-      boxShadow: "0 -5px 20px rgba(0,0,0,0.5)",
-      zIndex: 1000
-    }}>
+  position: "fixed",
+  bottom: 0,
+  left: 0,
+  width: "100%",
+  background: "#1e1e2f",
+  display: "flex",
+  justifyContent: "space-around",
+  padding: "12px 0",
+  zIndex: 9999 // 🔥 добавь это
+}}>
 
       <button onClick={()=>setPage("home")}
         style={{ color: page==="home" ? "#00ffae" : "#aaa" }}>
