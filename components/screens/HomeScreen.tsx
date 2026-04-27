@@ -311,7 +311,7 @@ const filterRow = {
 const categoryRow: React.CSSProperties = {
   display: "flex",
   gap: "10px",
-overflowX: "auto" as const
+  overflowX: "auto"
 };
 
 const categoryCard = {
