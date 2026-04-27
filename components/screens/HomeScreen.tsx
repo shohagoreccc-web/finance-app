@@ -308,10 +308,10 @@ const filterRow = {
   marginTop: "10px"
 };
 
-const categoryRow = {
+const categoryRow: React.CSSProperties = {
   display: "flex",
   gap: "10px",
-  overflowX: "auto"
+overflowX: "auto" as const
 };
 
 const categoryCard = {
