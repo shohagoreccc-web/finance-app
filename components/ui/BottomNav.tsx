@@ -39,14 +39,16 @@ export const BottomNav = ({ page, setPage }: any) => {
   );
 };
 
-const nav = {
+/* ✅ СТИЛИ С ТИПАМИ */
+
+const nav: React.CSSProperties = {
   position: "fixed",
   bottom: "10px",
   left: "50%",
   transform: "translateX(-50%)",
 
-  width: "calc(100% - 20px)", // 🔥 чтобы были отступы
-  maxWidth: "420px",          // 🔥 ограничение как у приложения
+  width: "calc(100% - 20px)",
+  maxWidth: "420px",
 
   display: "flex",
   justifyContent: "space-around",
@@ -65,15 +67,15 @@ const nav = {
   zIndex: 9999
 };
 
-const itemStyle = {
+const itemStyle: React.CSSProperties = {
   display: "flex",
-  flexDirection: "column" as const,
+  flexDirection: "column",
   alignItems: "center",
   cursor: "pointer",
   flex: 1
 };
 
-const iconStyle = (active: boolean) => ({
+const iconStyle = (active: boolean): React.CSSProperties => ({
   width: "22px",
   height: "22px",
   stroke: active ? "#22c55e" : "#64748b",
