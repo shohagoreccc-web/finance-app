@@ -37,22 +37,16 @@ export const HomeScreen = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<any | null>(null);
 
-  // 🔍 фильтр
   const filteredTransactions = useMemo(() => {
-  return safeTransactions.filter((t: any) => {
-    // ❌ убираем долги с главной
-    if (t.type === "debt") return false;
+    return safeTransactions.filter((t: any) => {
+      if (t.type === "debt") return false;
+      if (filterType !== "all" && t.type !== filterType) return false;
+      if (search && !t.title?.toLowerCase().includes(search.toLowerCase()))
+        return false;
+      return true;
+    });
+  }, [safeTransactions, search, filterType]);
 
-    if (filterType !== "all" && t.type !== filterType) return false;
-
-    if (search && !t.title?.toLowerCase().includes(search.toLowerCase()))
-      return false;
-
-    return true;
-  });
-}, [safeTransactions, search, filterType]);
-
-  // 💰 баланс
   const balanceUZS = calculateBalance(safeTransactions, "UZS");
   const balanceUSD = calculateBalance(safeTransactions, "USD");
 
@@ -64,7 +58,6 @@ export const HomeScreen = ({
     0
   );
 
-  // 📈 график
   const dailyData = Object.values(
     safeTransactions.reduce((acc: any, item: any) => {
       if (item.type === "expense") {
@@ -73,9 +66,7 @@ export const HomeScreen = ({
           month: "2-digit"
         });
 
-        if (!acc[date]) {
-          acc[date] = { date, value: 0 };
-        }
+        if (!acc[date]) acc[date] = { date, value: 0 };
 
         acc[date].value += Number(item.amount);
       }
@@ -84,13 +75,11 @@ export const HomeScreen = ({
     }, {})
   );
 
-  // 🔥 топ категории
   const sortedCategories = Object.entries(categoryStats)
     .sort((a: any, b: any) => b[1] - a[1]);
 
   const top3 = sortedCategories.slice(0, 3);
 
-  // 🧠 советы
   const smartAdvice = () => {
     if (dayStats.expense > dayStats.income) {
       return "⚠️ Ты тратишь больше чем зарабатываешь";
@@ -109,8 +98,6 @@ export const HomeScreen = ({
 
   return (
     <div style={container}>
-
-      {/* 💰 БАЛАНС */}
       <div style={balanceBox}>
         <div style={{ opacity: 0.7 }}>Общий баланс</div>
         <div style={big}>{balanceUZS.toLocaleString()} сум</div>
@@ -119,14 +106,12 @@ export const HomeScreen = ({
         </div>
       </div>
 
-      {/* 📊 СТАТЫ */}
       <div style={grid}>
         <div style={card}>📈 {dayStats.income}</div>
         <div style={card}>📉 {dayStats.expense}</div>
         <div style={card}>💰 {dayStats.balance}</div>
       </div>
 
-      {/* 🔍 ПОИСК */}
       <input
         placeholder="Поиск..."
         value={search}
@@ -134,7 +119,6 @@ export const HomeScreen = ({
         style={input}
       />
 
-      {/* 🔘 ФИЛЬТР */}
       <div style={filterRow}>
         {["all", "income", "expense"].map((type) => (
           <button
@@ -159,7 +143,6 @@ export const HomeScreen = ({
         ))}
       </div>
 
-      {/* 📊 КАТЕГОРИИ */}
       <div style={{ marginTop: "20px" }}>
         <h3>📊 Категории</h3>
 
@@ -182,7 +165,6 @@ export const HomeScreen = ({
         </div>
       </div>
 
-      {/* 📈 ГРАФИК */}
       <div style={{ marginTop: "25px" }}>
         <h3>📈 Динамика расходов</h3>
 
@@ -203,7 +185,6 @@ export const HomeScreen = ({
         </div>
       </div>
 
-      {/* 🧠 АНАЛИЗ */}
       <div style={{ marginTop: "20px" }}>
         <h3>🧠 Анализ</h3>
 
@@ -221,7 +202,6 @@ export const HomeScreen = ({
         </div>
       </div>
 
-      {/* 📋 СПИСОК */}
       <TransactionList
         transactions={filteredTransactions}
         visibleCount={visibleCount}
@@ -235,7 +215,6 @@ export const HomeScreen = ({
         }}
       />
 
-      {/* ➕ FAB */}
       <button
         style={fab}
         onClick={() => {
@@ -246,7 +225,6 @@ export const HomeScreen = ({
         +
       </button>
 
-      {/* 🪟 MODAL */}
       {isModalOpen && (
         <AddTransactionModal
           onAdd={addTransaction}
@@ -259,9 +237,9 @@ export const HomeScreen = ({
   );
 };
 
-/* ================= СТИЛИ ================= */
+/* ✅ ВСЕ СТИЛИ С ТИПАМИ */
 
-const container = {
+const container: React.CSSProperties = {
   maxWidth: "400px",
   margin: "0 auto",
   padding: "20px",
@@ -271,28 +249,28 @@ const container = {
   background: "#020617"
 };
 
-const balanceBox = {
+const balanceBox: React.CSSProperties = {
   background: "linear-gradient(135deg,#0f172a,#22c55e)",
   padding: "20px",
   borderRadius: "20px",
   marginBottom: "15px"
 };
 
-const big = { fontSize: "26px", fontWeight: "bold" };
+const big: React.CSSProperties = { fontSize: "26px", fontWeight: "bold" };
 
-const grid = {
+const grid: React.CSSProperties = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr 1fr",
   gap: "10px"
 };
 
-const card = {
+const card: React.CSSProperties = {
   background: "#1e293b",
   padding: "10px",
   borderRadius: "10px"
 };
 
-const input = {
+const input: React.CSSProperties = {
   width: "100%",
   marginTop: "15px",
   padding: "10px",
@@ -302,7 +280,7 @@ const input = {
   color: "white"
 };
 
-const filterRow = {
+const filterRow: React.CSSProperties = {
   display: "flex",
   gap: "8px",
   marginTop: "10px"
@@ -314,7 +292,7 @@ const categoryRow: React.CSSProperties = {
   overflowX: "auto"
 };
 
-const categoryCard = {
+const categoryCard: React.CSSProperties = {
   minWidth: "80px",
   background: "#1e293b",
   padding: "10px",
@@ -322,26 +300,26 @@ const categoryCard = {
   textAlign: "center"
 };
 
-const chartBox = {
+const chartBox: React.CSSProperties = {
   background: "#0f172a",
   padding: "15px",
   borderRadius: "16px"
 };
 
-const adviceBox = {
+const adviceBox: React.CSSProperties = {
   background: "#1e293b",
   padding: "12px",
   borderRadius: "12px",
   marginTop: "10px"
 };
 
-const topRow = {
+const topRow: React.CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   marginTop: "5px"
 };
 
-const fab = {
+const fab: React.CSSProperties = {
   position: "fixed",
   bottom: "80px",
   right: "20px",
