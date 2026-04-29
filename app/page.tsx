@@ -528,7 +528,7 @@ const closeBtn = {
       {/* HOME */}
       {page === "home" && (
         <HomeScreen
-          transactions={transactions}
+          safeTransactions={transactions}
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
           updateTransaction={updateTransaction}
@@ -558,7 +558,7 @@ const closeBtn = {
           goalCurrency={goalCurrency}
           setGoalCurrency={setGoalCurrency}
           addGoal={addGoal}
-          transactions={transactions}
+          safeTransactions={transactions}
           user={user}
           deleteGoal={deleteGoal}
         />
@@ -566,14 +566,14 @@ const closeBtn = {
 
       {/* DEBTS */}
       {page === "debts" && (
-        <DebtsScreen transactions={transactions} />
+        <DebtsScreen safeTransactions={transactions} />
       )}
 
       {/* PROFILE */}
       {page === "profile" && (
         <ProfileScreen
           user={user}
-          transactions={transactions}
+          safeTransactions={transactions}
           onLogout={async () => {
             await signOut(auth);
           }}
