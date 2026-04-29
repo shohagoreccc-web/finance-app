@@ -60,12 +60,19 @@ export default function Home() {
   if (!user) return;
 
   const checkProfile = async () => {
-    const ref = doc(db, "users", user.uid);
-    const snap = await getDoc(ref);
+    try {
+      const ref = doc(db, "users", user.uid);
+      const snap = await getDoc(ref);
 
-    if (snap.exists()) {
-      setHasProfile(true);
-    } else {
+      if (snap.exists()) {
+        setHasProfile(true);
+      } else {
+        setHasProfile(false);
+      }
+    } catch (e) {
+      console.error("PROFILE ERROR:", e);
+
+      // 🔥 ВАЖНО: не зависаем
       setHasProfile(false);
     }
   };
@@ -449,10 +456,6 @@ if (user && hasProfile === false) {
       onFinish={() => setHasProfile(true)}
     />
   );
-}
-// ⏳ Ждём проверку профиля
-if (user && hasProfile === null) {
-  return <div style={{color:"white", textAlign:"center"}}>Загрузка профиля...</div>;
 }
 
 // ❗ НЕТ АНКЕТЫ → показываем онбординг
