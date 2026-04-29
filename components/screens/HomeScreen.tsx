@@ -10,7 +10,9 @@ import {
 
 import { TransactionList } from "@/components/transactions/TransactionList";
 import { AddTransactionModal } from "@/components/modals/AddTransactionModal";
-
+import { calculateDebtForecast } from "@/utils/forecast";
+import { buildDebtPlan } from "@/utils/finance";
+import { buildSmartStrategy } from "@/utils/finance";
 import {
   LineChart,
   Line,
@@ -20,6 +22,8 @@ import {
 } from "recharts";
 
 export const HomeScreen = ({
+  aiAdvice,
+  loadingAI,
   transactions,
   addTransaction,
   deleteTransaction,
@@ -27,13 +31,13 @@ export const HomeScreen = ({
 }: any) => {
 
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
-
+  const forecast = calculateDebtForecast(transactions);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
-
+  const plan = buildDebtPlan(transactions);
   const [visibleCount, setVisibleCount] = useState(6);
   const [expanded, setExpanded] = useState(false);
-
+  const strategy = buildSmartStrategy(transactions);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<any | null>(null);
 
@@ -81,20 +85,30 @@ export const HomeScreen = ({
   const top3 = sortedCategories.slice(0, 3);
 
   const smartAdvice = () => {
-    if (dayStats.expense > dayStats.income) {
-      return "⚠️ Ты тратишь больше чем зарабатываешь";
-    }
+  const tips: string[] = [];
 
-    if (top3.length > 0 && top3[0][0] === "Еда") {
-      return "🍔 Основные расходы на еду — попробуй сократить";
-    }
+  if (dayStats.expense > dayStats.income) {
+    tips.push("⚠️ Ты тратишь больше чем зарабатываешь");
+  }
 
-    if (top3.length > 0 && top3[0][0] === "Транспорт") {
-      return "🚗 Много уходит на транспорт — оптимизируй поездки";
-    }
+  if (top3.length > 0 && top3[0][0] === "Еда") {
+    tips.push("🍔 Основные расходы на еду — попробуй сократить");
+  }
 
-    return "✅ Финансы под контролем";
-  };
+  if (top3.length > 0 && top3[0][0] === "Транспорт") {
+    tips.push("🚗 Много уходит на транспорт — оптимизируй поездки");
+  }
+
+  if (forecast?.months) {
+    tips.push(`📉 Закроешь долги примерно за ${forecast.months} мес.`);
+  }
+
+  if (tips.length === 0) {
+    tips.push("✅ Финансы под контролем");
+  }
+
+  return tips;
+};
 
   return (
     <div style={container}>
@@ -145,6 +159,14 @@ export const HomeScreen = ({
 
       <div style={{ marginTop: "20px" }}>
         <h3>📊 Категории</h3>
+        {loadingAI ? (
+  <div style={{ marginTop: 20 }}>🤖 Анализируем...</div>
+) : (
+  <div style={{ marginTop: 20 }}>
+    <h3>🤖 AI Анализ</h3>
+    <div style={aiBox}>{aiAdvice}</div>
+  </div>
+)}
 
         <div style={categoryRow}>
           {Object.entries(categoryStats).map(([name, value]: any, i) => {
@@ -186,21 +208,57 @@ export const HomeScreen = ({
       </div>
 
       <div style={{ marginTop: "20px" }}>
-        <h3>🧠 Анализ</h3>
+  <h3>🧠 Анализ</h3>
 
-        <div style={adviceBox}>
-          {smartAdvice()}
-        </div>
+  <div style={forecastBox}>
+    <h3>📉 Прогноз долгов</h3>
+          <div style={forecastBox}>
+  <h3>💰 План погашения</h3>
+<div style={forecastBox}>
+  <h3>🚀 Как быстрее закрыть долги</h3>
 
-        <div style={{ marginTop: "10px" }}>
-          {top3.map((c: any, i: number) => (
-            <div key={i} style={topRow}>
-              <span>{c[0]}</span>
-              <span>{c[1]}</span>
-            </div>
-          ))}
-        </div>
+  {strategy.map((s: string, i: number) => (
+    <div key={i} style={forecastText}>
+      {s}
+    </div>
+  ))}
+</div>
+  <div style={forecastText}>
+    {plan.message}
+  </div>
+
+  {plan.months && (
+    <div style={forecastMonths}>
+      ⏳ {plan.months} месяцев до закрытия
+    </div>
+  )}
+</div>
+    <div style={forecastText}>
+      {forecast.message}
+    </div>
+
+    {forecast.months && (
+      <div style={forecastMonths}>
+        ⏳ {forecast.months} месяцев до закрытия
       </div>
+    )}
+  </div>
+
+  <div style={adviceBox}>
+    {smartAdvice().map((a: string, i: number) => (
+  <div key={i}>{a}</div>
+))}
+  </div>
+
+  <div style={{ marginTop: "10px" }}>
+    {top3.map((c: any, i: number) => (
+      <div key={i} style={topRow}>
+        <span>{c[0]}</span>
+        <span>{c[1]}</span>
+      </div>
+    ))}
+  </div>
+</div>
 
       <TransactionList
         transactions={filteredTransactions}
@@ -330,6 +388,34 @@ const fab: React.CSSProperties = {
   color: "#fff",
   fontSize: "32px",
   border: "none"
+};
+
+const forecastBox: React.CSSProperties = {
+  background: "#1e293b",
+  padding: "15px",
+  borderRadius: "12px",
+  marginTop: "10px"
+};
+
+const forecastText: React.CSSProperties = {
+  marginTop: "8px",
+  fontSize: "14px",
+  opacity: 0.8
+};
+
+const forecastMonths: React.CSSProperties = {
+  marginTop: "10px",
+  fontSize: "13px",
+  color: "#22c55e",
+  fontWeight: "600"
+};
+
+const aiBox: React.CSSProperties = {
+  background: "#1e293b",
+  padding: "15px",
+  borderRadius: "12px",
+  marginTop: "10px",
+  whiteSpace: "pre-line"
 };
 
 const getCategoryIcon = (name: string) => {

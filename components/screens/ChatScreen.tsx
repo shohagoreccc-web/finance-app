@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { askAI } from "@/services/ai";
 
 export const ChatScreen = ({
   messages,
@@ -9,102 +9,125 @@ export const ChatScreen = ({
   sendMessage
 }: any) => {
 
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const renderAI = (text: string) => {
+    const lines = text.split("\n");
 
-  // 🔥 автоскролл вниз
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    return lines.map((line, i) => {
+      if (line.includes("АНАЛИЗ")) {
+        return <div key={i} style={title}>📊 {line}</div>;
+      }
+
+      if (line.includes("ОШИБКИ")) {
+        return <div key={i} style={title}>❌ {line}</div>;
+      }
+
+      if (line.includes("СОВЕТЫ")) {
+        return <div key={i} style={title}>💡 {line}</div>;
+      }
+
+      return <div key={i} style={textStyle}>{line}</div>;
+    });
+  };
 
   return (
-    <div style={{
-      padding: "20px",
-      color: "white",
-      maxWidth: "400px",
-      margin: "0 auto",
-      paddingBottom: "100px"
-    }}>
+    <div style={container}>
 
-      <h2>💬 Финансовый AI</h2>
-
-      {/* 💬 сообщения */}
-      <div style={{
-        marginTop: "10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "8px"
-      }}>
+      {/* ЧАТ */}
+      <div style={chatBox}>
         {messages.map((m: any, i: number) => (
           <div
             key={i}
             style={{
-              background: m.role === "user" ? "#22c55e" : "#1e293b",
-              color: m.role === "user" ? "#000" : "#fff",
-              padding: "10px 14px",
-              borderRadius: "14px",
-              maxWidth: "80%",
+              ...bubble,
               alignSelf: m.role === "user" ? "flex-end" : "flex-start",
-              boxShadow: "0 5px 15px rgba(0,0,0,0.3)"
+              background:
+                m.role === "user"
+                  ? "#22c55e"
+                  : "#1e293b",
+              color: m.role === "user" ? "#000" : "#fff"
             }}
           >
-            {m.text}
+            {m.role === "assistant"
+              ? renderAI(m.text)
+              : m.text}
           </div>
         ))}
-
-        {/* 👇 якорь для автоскролла */}
-        <div ref={bottomRef} />
       </div>
 
-        <button
-  onClick={() => sendMessage("Проанализируй мои финансы")}
-  style={{
-    marginTop: "10px",
-    padding: "10px",
-    width: "100%",
-    background: "#3b82f6",
-    border: "none",
-    borderRadius: "10px",
-    color: "white",
-    fontWeight: "bold"
-  }}
->
-  📊 Проанализировать финансы
-</button>
+      {/* ВВОД */}
+      <div style={inputBox}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Спроси AI..."
+          style={inputStyle}
+        />
 
-      {/* ✏️ input */}
-      <input
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        placeholder="Напиши сообщение..."
-        style={{
-          width: "100%",
-          marginTop: "15px",
-          padding: "12px",
-          borderRadius: "12px",
-          border: "none",
-          background: "#1e293b",
-          color: "white",
-          outline: "none"
-        }}
-      />
-
-      {/* 🚀 кнопка */}
-      <button
-        onClick={sendMessage}
-        style={{
-          marginTop: "10px",
-          padding: "12px",
-          width: "100%",
-          background: "#22c55e",
-          border: "none",
-          borderRadius: "12px",
-          fontWeight: "bold",
-          cursor: "pointer"
-        }}
-      >
-        Отправить
-      </button>
+        <button onClick={() => sendMessage()} style={btn}>
+          ➤
+        </button>
+      </div>
 
     </div>
   );
+};
+
+/* ===== СТИЛИ ===== */
+
+const container: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  height: "100%",
+  padding: "10px"
+};
+
+const chatBox: React.CSSProperties = {
+  flex: 1,
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+  overflowY: "auto",
+  paddingBottom: "10px"
+};
+
+const bubble: React.CSSProperties = {
+  padding: "10px",
+  borderRadius: "12px",
+  maxWidth: "80%",
+  fontSize: "14px",
+  lineHeight: "1.4"
+};
+
+const inputBox: React.CSSProperties = {
+  display: "flex",
+  gap: "8px"
+};
+
+const inputStyle: React.CSSProperties = {
+  flex: 1,
+  padding: "10px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#1e293b",
+  color: "white"
+};
+
+const btn: React.CSSProperties = {
+  padding: "10px 14px",
+  borderRadius: "10px",
+  border: "none",
+  background: "#22c55e",
+  color: "black",
+  fontWeight: "600"
+};
+
+const title: React.CSSProperties = {
+  fontWeight: "700",
+  marginTop: "6px",
+  color: "#22c55e"
+};
+
+const textStyle: React.CSSProperties = {
+  marginTop: "3px",
+  opacity: 0.9
 };

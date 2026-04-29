@@ -1,39 +1,120 @@
 import OpenAI from "openai";
+import { NextResponse } from "next/server";
 
-export const runtime = "nodejs";
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 
 export async function POST(req: Request) {
   try {
-    const { transactions, question } = await req.json();
+    // 🔥 если нет ключа → fallback
+    if (!process.env.OPENAI_API_KEY) {
+      return NextResponse.json({
+        answer:
+          "⚠️ Нет API ключа. Добавь OPENAI_API_KEY в .env.local или Vercel"
+      });
+    }
 
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
+    const body = await req.json();
+
+    const transactions = Array.isArray(body.transactions)
+      ? body.transactions
+      : [];
+
+    const question = body.question || "Дай совет по финансам";
+    const messages = Array.isArray(body.messages) ? body.messages : [];
+
+    // 🔥 считаем финансы
+    const income = transactions
+      .filter((t: any) => t.type === "income")
+      .reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+    const expense = transactions
+      .filter((t: any) => t.type === "expense")
+      .reduce((s: number, t: any) => s + Number(t.amount), 0);
+
+    const balance = income - expense;
+
+    // 🔥 категории расходов
+    const categories: Record<string, number> = {};
+
+    transactions.forEach((t: any) => {
+      if (t.type === "expense") {
+        categories[t.category] =
+          (categories[t.category] || 0) + Number(t.amount);
+      }
     });
 
-    // 🧠 простая сводка для контекста
-    const summary = transactions.map((t: any) => {
-      return `${t.type === "income" ? "Доход" : "Расход"}: ${t.amount} ${t.currency} (${t.category || "другое"})`;
-    }).slice(0, 50).join("\n");
+    const topCategories = Object.entries(categories)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3);
 
+    // 🔥 prompt
     const prompt = `
-Ты финансовый ассистент. Дай краткий и полезный совет.
+Ты профессиональный финансовый консультант.
 
-Данные:
-${summary}
+Финансы пользователя:
+Доход: ${income}
+Расход: ${expense}
+Баланс: ${balance}
 
-Вопрос: ${question || "Проанализируй мои финансы и дай рекомендации"}
-    `;
+ТОП РАСХОДЫ:
+${topCategories
+  .map((c) => `${c[0]}: ${c[1]}`)
+  .join("\n")}
 
-    const res = await openai.chat.completions.create({
+Вопрос:
+${question}
+
+Отвечай строго:
+
+АНАЛИЗ:
+(что происходит)
+
+ОШИБКИ:
+(конкретные проблемы)
+
+СОВЕТЫ:
+(конкретные действия)
+`;
+
+    // 🔥 ChatGPT с памятью
+    const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "Ты финансовый консультант. Даёшь конкретные, полезные и честные советы."
+        },
+
+        // 🔥 история диалога
+        ...messages.map((m: any) => ({
+          role: m.role,
+          content: m.text
+        })),
+
+        // 🔥 текущий запрос
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
       temperature: 0.7
     });
 
-    const answer = res.choices?.[0]?.message?.content || "Нет ответа";
+    const answer =
+      completion.choices?.[0]?.message?.content ||
+      "AI не дал ответа";
 
-    return Response.json({ answer });
+    return NextResponse.json({ answer });
+
   } catch (e: any) {
-    return Response.json({ answer: "Ошибка AI: " + e.message }, { status: 500 });
+    console.error("AI ERROR:", e);
+
+    return NextResponse.json({
+      answer:
+        "⚠️ Ошибка AI. Проверь API ключ или структуру запроса"
+    });
   }
 }

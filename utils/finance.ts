@@ -72,3 +72,112 @@ export const getCategoryStats = (transactions: any[]) => {
 
   return categories;
 };
+export const buildDebtPlan = (transactions: any[]) => {
+  const safe = Array.isArray(transactions) ? transactions : [];
+
+  const income = safe
+    .filter(t => t.type === "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const expense = safe
+    .filter(t => t.type === "expense")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const debt = safe
+    .filter(t => t.type === "debt")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const freeMoney = income - expense;
+
+  if (debt <= 0) {
+    return {
+      message: "У тебя нет долгов 🎉"
+    };
+  }
+
+  if (freeMoney <= 0) {
+    return {
+      message: "Нет свободных денег для погашения ❌"
+    };
+  }
+
+  const months = Math.ceil(debt / freeMoney);
+
+  return {
+    message: `Погаси по ${freeMoney.toLocaleString()} в месяц`,
+    months,
+    monthlyPayment: freeMoney,
+    totalDebt: debt
+  };
+};
+export const buildSmartStrategy = (transactions: any[]) => {
+  const safe = Array.isArray(transactions) ? transactions : [];
+
+  const income = safe
+    .filter(t => t.type === "income")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const expense = safe
+    .filter(t => t.type === "expense")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const debt = safe
+    .filter(t => t.type === "debt")
+    .reduce((s, t) => s + Number(t.amount), 0);
+
+  const free = income - expense;
+
+  if (debt <= 0) return [];
+
+  const tips: string[] = [];
+
+  // 🔥 базовый срок
+  const currentMonths = free > 0 ? Math.ceil(debt / free) : null;
+
+  // 🔥 категории
+  const categories: Record<string, number> = {};
+
+  safe.forEach(t => {
+    if (t.type === "expense") {
+      categories[t.category] =
+        (categories[t.category] || 0) + Number(t.amount);
+    }
+  });
+
+  const top = Object.entries(categories).sort((a, b) => b[1] - a[1])[0];
+
+  // 🔥 если есть главная категория
+  if (top && free > 0) {
+    const reduced = free + top[1] * 0.2; // сократить 20%
+    const newMonths = Math.ceil(debt / reduced);
+
+    if (currentMonths && newMonths < currentMonths) {
+      tips.push(
+        `📉 Если сократишь "${top[0]}" на 20%, закроешь долг на ${
+          currentMonths - newMonths
+        } мес. быстрее`
+      );
+    }
+  }
+
+  // 🔥 если увеличить доход
+  const extraIncome = free + 500000;
+
+  if (free > 0) {
+    const faster = Math.ceil(debt / extraIncome);
+
+    if (currentMonths && faster < currentMonths) {
+      tips.push(
+        `💼 Если увеличишь доход на 500k, сократишь срок на ${
+          currentMonths - faster
+        } мес.`
+      );
+    }
+  }
+
+  if (tips.length === 0) {
+    tips.push("👍 Ты уже двигаешься оптимально");
+  }
+
+  return tips;
+};

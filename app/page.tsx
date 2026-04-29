@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { EditTransactionModal } from "@/components/modals/EditTransactionModal"; 
 import { AddTransactionModal } from "@/components/modals/AddTransactionModal";
 import { ChatScreen } from "@/components/screens/ChatScreen";
 import { HomeScreen } from "@/components/screens/HomeScreen";
 import { GoalsScreen } from "@/components/screens/GoalsScreen";
+import { AuthScreen } from "@/components/screens/AuthScreen";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { ProfileScreen } from "@/components/screens/ProfileScreen";
 import { Toast } from "@/components/ui/toast";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { DebtsScreen } from "@/components/screens/DebtsScreen";
+import { OnboardingScreen } from "@/components/screens/OnboardingScreen";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { collection, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, addDoc, deleteDoc, updateDoc } from "firebase/firestore";
+import { useState, useEffect } from "react";
 import { PieChart, Pie, Tooltip, Cell } from "recharts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { auth } from "../lib/firebase";
@@ -22,6 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useGoals } from "@/hooks/useGoals";
 import { useFinance } from "@/hooks/useFinance";
 import { askAI } from "@/services/ai";
+
 import { addTransactionService } from "@/services/transactions";
 import { deleteTransactionService } from "@/services/transactions";
 import { getDebts } from "@/utils/calculations";
@@ -40,8 +44,7 @@ import {
 
 
 export default function Home() {
-  
-  
+  const [pressed, setPressed] = useState(false);
   const [page, setPage] = useState("home");
   const {
   transactions,
@@ -53,24 +56,73 @@ export default function Home() {
   const COLORS = ["#00ffae", "#ff4d6d", "#ffd166", "#4dabf7"];
 
   const { user, loading } = useAuth();
+  useEffect(() => {
+  if (!user) return;
 
+  const checkProfile = async () => {
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+
+    if (snap.exists()) {
+      setHasProfile(true);
+    } else {
+      setHasProfile(false);
+    }
+  };
+
+  checkProfile();
+}, [user]);
   // ✅ ПОТОМ расчёты (ВАЖНО!)
   const dayStats = getStats(filterByPeriod(transactions, "day"));
   const weekStats = getStats(filterByPeriod(transactions, "week"));
   const monthStats = getStats(filterByPeriod(transactions, "month"));
   const yearStats = getStats(filterByPeriod(transactions, "year"));
   const [isModalOpen, setIsModalOpen] = useState(false)
-  
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
+  const sendMessage = async (customText?: string) => {
+  const textToSend = customText || input;
+  if (!textToSend) return;
 
+  const userMsg = { role: "user", text: textToSend };
+
+  const newMessages = [...messages, userMsg];
+
+  setMessages(newMessages);
+  setInput("");
+
+  const res = await askAI(transactions, textToSend, newMessages);
+
+  const aiMsg = { role: "assistant", text: res };
+
+  setMessages([...newMessages, aiMsg]);
+};
   const [chartCurrency, setChartCurrency] = useState("UZS");
   const [visibleCount, setVisibleCount] = useState(4);
 
   const [aiAdvice, setAiAdvice] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
+  useEffect(() => {
+  if (!transactions || transactions.length === 0) return;
+
+  const runAI = async () => {
+    setLoadingAI(true);
+
+    const answer = await askAI(
+      transactions,
+      "Проанализируй мои финансы и дай советы",
+      messages
+    );
+
+    setAiAdvice(answer);
+    setLoadingAI(false);
+  };
+
+  runAI();
+}, [transactions]);
 
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [filterType, setFilterType] = useState("all");
@@ -140,7 +192,11 @@ const balanceUSD = calculateBalance(transactions, "USD");
   totalLoan
 };
 
-    const answer = await askAI(transactions, "Дай совет по финансам");
+    const answer = await askAI(
+  transactions,
+  "Дай совет по финансам",
+  messages
+);
 
     setAiAdvice(answer);
   } catch (e) {
@@ -149,33 +205,6 @@ const balanceUSD = calculateBalance(transactions, "USD");
   }
 
   setLoadingAI(false);
-};
-
-  const sendMessage = async (customText?: string) => {
-  const textToSend = customText || input;
-
-  if (!textToSend) return;
-
-  const userMessage = { role: "user", text: textToSend };
-  setMessages(prev => [...prev, userMessage]);
-
-  setInput("");
-
-  try {
-    const { totalDebt, totalLoan } = getDebts(transactions);
-
-    const debts = { totalDebt, totalLoan };
-
-    const answer = await askAI(transactions, textToSend);
-
-    setMessages(prev => [
-      ...prev,
-      { role: "assistant", text: answer }
-    ]);
-
-  } catch (e) {
-    console.error("AI error", e);
-  }
 };
 
   const totalExpense = transactions
@@ -329,39 +358,47 @@ if (!user) {
       />
 
       <button
-        onClick={async () => {
-          if (!email || !email.includes("@")) {
-            alert("Введи норм email");
-            return;
-          }
+  onMouseDown={() => setPressed(true)}
+  onMouseUp={() => setPressed(false)}
+  onMouseLeave={() => setPressed(false)}
 
-          if (password.length < 6) {
-            alert("Пароль минимум 6 символов");
-            return;
-          }
+  onClick={async () => {
+    if (!email || !email.includes("@")) {
+      alert("Введи норм email");
+      return;
+    }
 
-          setAuthLoading(true);
+    if (password.length < 6) {
+      alert("Пароль минимум 6 символов");
+      return;
+    }
 
-          try {
-            await signInWithEmailAndPassword(auth, email, password);
-          } catch (e: any) {
-            alert(e.message);
-          } finally {
-            setAuthLoading(false);
-          }
-        }}
-        disabled={authLoading}
-        style={{
-          width:"100%",
-          marginTop:"10px",
-          padding:"12px",
-          background: authLoading ? "#555" : "#00ffae",
-          border:"none",
-          borderRadius:"10px"
-        }}
-      >
-        {authLoading ? "⏳ Входим..." : "Войти"}
-      </button>
+    setAuthLoading(true);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setAuthLoading(false);
+    }
+  }}
+
+  disabled={authLoading}
+
+  style={{
+    width: "100%",
+    marginTop: "10px",
+    padding: "12px",
+    background: authLoading ? "#555" : "#00ffae",
+    border: "none",
+    borderRadius: "10px",
+    transition: "0.1s",
+    transform: pressed ? "scale(0.95)" : "scale(1)"
+  }}
+>
+  {authLoading ? "⏳ Входим..." : "Войти"}
+</button>
 
       <button
         onClick={async () => {
@@ -393,6 +430,38 @@ if (!user) {
         Регистрация
       </button>
     </div>
+  );
+}
+// ⏳ ждём проверку профиля
+if (user && hasProfile === null) {
+  return (
+    <div style={{ color: "white", textAlign: "center", marginTop: "50px" }}>
+      Загрузка профиля...
+    </div>
+  );
+}
+
+// ❗ если нет анкеты → показываем онбординг
+if (user && hasProfile === false) {
+  return (
+    <OnboardingScreen
+      user={user}
+      onFinish={() => setHasProfile(true)}
+    />
+  );
+}
+// ⏳ Ждём проверку профиля
+if (user && hasProfile === null) {
+  return <div style={{color:"white", textAlign:"center"}}>Загрузка профиля...</div>;
+}
+
+// ❗ НЕТ АНКЕТЫ → показываем онбординг
+if (user && hasProfile === false) {
+  return (
+    <OnboardingScreen
+      user={user}
+      onFinish={() => setHasProfile(true)}
+    />
   );
 }
 const addGoal = async () => {
@@ -460,17 +529,19 @@ const closeBtn = {
           addTransaction={addTransaction}
           deleteTransaction={deleteTransaction}
           updateTransaction={updateTransaction}
+          aiAdvice={aiAdvice}
+          loadingAI={loadingAI}
         />
       )}
 
       {/* CHAT */}
       {page === "chat" && (
         <ChatScreen
-          messages={messages}
-          input={input}
-          setInput={setInput}
-          sendMessage={sendMessage}
-        />
+  messages={messages}
+  input={input}
+  setInput={setInput}
+  sendMessage={sendMessage}
+/>
       )}
 
       {/* GOALS */}

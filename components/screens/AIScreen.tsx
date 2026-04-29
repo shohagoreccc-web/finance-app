@@ -11,11 +11,12 @@ export const AIScreen = ({ transactions }: any) => {
     setLoading(true);
 
     const res = await askAI(
-      transactions,
-      "Проанализируй мои финансы и дай рекомендации"
-    );
+  transactions,
+  "Проанализируй мои финансы и дай рекомендации",
+  []
+);
 
-    setAnswer(res);
+    setAnswer(res.answer);
     setLoading(false);
   };
 

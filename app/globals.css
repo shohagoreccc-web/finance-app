@@ -62,3 +62,18 @@ button {
     transform: translateY(0);
   }
 }
+.press-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: black;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.press-btn:active {
+  transform: scale(0.95);
+}
