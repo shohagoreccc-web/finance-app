@@ -9,9 +9,15 @@ export const GoalsScreen = ({
   goalCurrency,
   setGoalCurrency,
   addGoal,
+  addToGoal,
   safeTransactions,
   deleteGoal
 }: any) => {
+
+  // 🔥 защита от краша
+  const safeTx = Array.isArray(safeTransactions) ? safeTransactions : [];
+  const safeGoals = Array.isArray(goals) ? goals : [];
+
   return (
     <div style={container}>
       <h2 style={title}>🎯 Финансовые цели</h2>
@@ -41,36 +47,40 @@ export const GoalsScreen = ({
           <option value="UZS">UZS</option>
         </select>
 
-        <button
-          onClick={() => {
-            console.log("CLICK");
-            addGoal();
-          }}
-          style={btn}
-        >
-          ➕ Добавить цель
+        <button onClick={addGoal} style={btn}>
+           Добавить цель
         </button>
       </div>
 
-      {/* СПИСОК ЦЕЛЕЙ */}
-      {goals.length === 0 && (
+      {/* ЕСЛИ НЕТ ЦЕЛЕЙ */}
+      {safeGoals.length === 0 && (
         <div style={empty}>Пока нет целей</div>
       )}
 
-      {goals.map((g: any, i: number) => {
-        const saved = safeTransactions
+      {/* СПИСОК */}
+      {safeGoals.map((g: any, i: number) => {
+
+        const saved = safeTx
           .filter((t: any) => t.type === "goal" && t.goalId === g.id)
-          .reduce((sum: number, t: any) => sum + Number(t.amount), 0);
+          .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
 
         const percent = Math.min((saved / g.amount) * 100, 100);
+        const remaining = Math.max(g.amount - saved, 0);
 
         return (
           <div key={i} style={goalCard}>
+            
+            {/* ВЕРХ */}
             <div style={goalTop}>
               <div>
                 <div style={goalNameText}>{g.name}</div>
+
                 <div style={goalAmountText}>
                   {saved} / {g.amount} {g.currency}
+                </div>
+
+                <div style={remainingText}>
+                  Осталось: {remaining} {g.currency}
                 </div>
               </div>
 
@@ -95,6 +105,19 @@ export const GoalsScreen = ({
             <div style={percentText}>
               {Math.round(percent)}%
             </div>
+
+            {/* 🔥 ПОПОЛНИТЬ */}
+            <button
+  onClick={() => addToGoal(g)}
+  style={addMoneyBtn}
+
+  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
+  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")} // 🔥 важно
+>
+  Пополнить
+</button>
+
           </div>
         );
       })}
@@ -118,8 +141,7 @@ const card: React.CSSProperties = {
   background: "#0f172a",
   padding: "15px",
   borderRadius: "16px",
-  marginTop: "15px",
-  boxShadow: "0 10px 30px rgba(0,0,0,0.4)"
+  marginTop: "15px"
 };
 
 const input: React.CSSProperties = {
@@ -145,13 +167,12 @@ const select: React.CSSProperties = {
 const btn: React.CSSProperties = {
   width: "100%",
   padding: "12px",
-  borderRadius: "12px",
+  borderRadius: "16px",
   border: "none",
-  background: "#22c55e",
+  background: "linear-gradient(135deg, #16a34a, #15803d)",
   color: "black",
   fontWeight: "600",
-  cursor: "pointer",
-  transition: "0.15s"
+  cursor: "pointer"
 };
 
 const empty: React.CSSProperties = {
@@ -163,8 +184,7 @@ const goalCard: React.CSSProperties = {
   background: "#020617",
   padding: "15px",
   borderRadius: "16px",
-  marginTop: "15px",
-  boxShadow: "0 5px 20px rgba(0,0,0,0.5)"
+  marginTop: "15px"
 };
 
 const goalTop: React.CSSProperties = {
@@ -180,6 +200,12 @@ const goalNameText: React.CSSProperties = {
 const goalAmountText: React.CSSProperties = {
   fontSize: "12px",
   opacity: 0.6
+};
+
+const remainingText: React.CSSProperties = {
+  fontSize: "12px",
+  color: "#22c55e",
+  marginTop: "3px"
 };
 
 const deleteBtn: React.CSSProperties = {
@@ -209,4 +235,23 @@ const percentText: React.CSSProperties = {
   fontSize: "12px",
   marginTop: "5px",
   opacity: 0.7
+};
+
+const addMoneyBtn: React.CSSProperties = {
+  marginTop: "10px",
+  width: "100%",
+  padding: "10px",
+
+  background: "linear-gradient(135deg, #16a34a, #15803d)",
+  color: "black",
+
+  border: "none",
+  borderRadius: "16px",
+
+  fontWeight: "600",
+  cursor: "pointer",
+
+  boxShadow: "0 4px 12px rgba(22,163,74,0.4)",
+
+  transition: "0.15s" // 🔥 ВОТ СЮДА
 };

@@ -31,25 +31,112 @@ export const HomeScreen = ({
 }: any) => {
 
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  console.log("HOME SCREEN TX:", safeTransactions);
   const forecast = calculateDebtForecast(transactions);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const plan = buildDebtPlan(transactions);
-  const [visibleCount, setVisibleCount] = useState(6);
+  const [visibleCount, setVisibleCount] = useState(50);
   const [expanded, setExpanded] = useState(false);
   const strategy = buildSmartStrategy(transactions);
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<any | null>(null);
 
-  const filteredTransactions = useMemo(() => {
-    return safeTransactions.filter((t: any) => {
-      if (t.type === "debt") return false;
-      if (filterType !== "all" && t.type !== filterType) return false;
-      if (search && !t.title?.toLowerCase().includes(search.toLowerCase()))
-        return false;
-      return true;
-    });
-  }, [safeTransactions, search, filterType]);
+  const [planMode, setPlanMode] = useState<
+  "minimum" |
+  "balanced" |
+  "aggressive"
+>("balanced");
+
+const [extraIncome, setExtraIncome] =
+  useState("");
+
+const selectedPlan =
+
+
+
+  planMode === "minimum"
+
+    ? {
+        payment: plan.minimumPayment,
+
+        months: Math.ceil(
+          plan.totalDebt /
+          plan.minimumPayment
+        )
+      }
+
+    : planMode === "aggressive"
+
+    ? {
+        payment: plan.aggressivePayment,
+
+        months: Math.ceil(
+          plan.totalDebt /
+          plan.aggressivePayment
+        )
+      }
+
+    : {
+        payment: plan.balancedPayment,
+
+        months: Math.ceil(
+          plan.totalDebt /
+          plan.balancedPayment
+        )
+      };
+
+      const improvedMonths = Math.ceil(
+
+  plan.totalDebt /
+
+  (
+    selectedPlan.payment +
+    Number(extraIncome || 0)
+  )
+
+);
+
+const savedMonths =
+
+  selectedPlan.months -
+  improvedMonths;
+
+  const filteredTransactions = safeTransactions.filter(
+  (t: any) => {
+
+    // ❌ скрываем долги
+    if (t.type === "debt") {
+      return false;
+    }
+
+    // ❌ скрываем погашение долгов
+    if (t.type === "debt_payment") {
+      return false;
+    }
+
+    // 🔍 поиск
+    if (
+      search &&
+      !t.title
+        ?.toLowerCase()
+        .includes(search.toLowerCase())
+    ) {
+      return false;
+    }
+
+    // 📂 фильтр
+    if (
+      filterType !== "all" &&
+      t.type !== filterType
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+);
 
   const balanceUZS = calculateBalance(safeTransactions, "UZS");
   const balanceUSD = calculateBalance(safeTransactions, "USD");
@@ -100,7 +187,7 @@ export const HomeScreen = ({
   }
 
   if (forecast?.months) {
-    tips.push(`📉 Закроешь долги примерно за ${forecast.months} мес.`);
+    tips.push(`📉 Закроешь долг примерно за ${selectedPlan.months} мес.`);
   }
 
   if (tips.length === 0) {
@@ -116,7 +203,7 @@ export const HomeScreen = ({
         <div style={{ opacity: 0.7 }}>Общий баланс</div>
         <div style={big}>{balanceUZS.toLocaleString()} сум</div>
         <div style={{ opacity: 0.6 }}>
-          ${balanceUSD.toLocaleString()}
+          {balanceUSD.toLocaleString()} $
         </div>
       </div>
 
@@ -159,14 +246,6 @@ export const HomeScreen = ({
 
       <div style={{ marginTop: "20px" }}>
         <h3>📊 Категории</h3>
-        {loadingAI ? (
-  <div style={{ marginTop: 20 }}>🤖 Анализируем...</div>
-) : (
-  <div style={{ marginTop: 20 }}>
-    <h3>🤖 AI Анализ</h3>
-    <div style={aiBox}>{aiAdvice}</div>
-  </div>
-)}
 
         <div style={categoryRow}>
           {Object.entries(categoryStats).map(([name, value]: any, i) => {
@@ -186,6 +265,17 @@ export const HomeScreen = ({
           })}
         </div>
       </div>
+
+          <TransactionList
+  transactions={filteredTransactions}
+  expanded={expanded}
+  setExpanded={setExpanded}
+  onDelete={deleteTransaction}
+        onEdit={(tx: any) => {
+          setEditTx(tx);
+          setIsModalOpen(true);
+        }}
+      />
 
       <div style={{ marginTop: "25px" }}>
         <h3>📈 Динамика расходов</h3>
@@ -207,71 +297,180 @@ export const HomeScreen = ({
         </div>
       </div>
 
-      <div style={{ marginTop: "20px" }}>
-  <h3>🧠 Анализ</h3>
+      <div style={{ marginTop: "25px" }}>
 
-  <div style={forecastBox}>
-    <h3>📉 Прогноз долгов</h3>
-          <div style={forecastBox}>
-  <h3>💰 План погашения</h3>
-<div style={forecastBox}>
-  <h3>🚀 Как быстрее закрыть долги</h3>
+  <div style={analysisCard}>
 
-  {strategy.map((s: string, i: number) => (
-    <div key={i} style={forecastText}>
-      {s}
-    </div>
-  ))}
-</div>
-  <div style={forecastText}>
-    {plan.message}
-  </div>
-
-  {plan.months && (
-    <div style={forecastMonths}>
-      ⏳ {plan.months} месяцев до закрытия
-    </div>
-  )}
-</div>
-    <div style={forecastText}>
-      {forecast.message}
-    </div>
-
-    {forecast.months && (
-      <div style={forecastMonths}>
-        ⏳ {forecast.months} месяцев до закрытия
+    {/* HEADER */}
+    <div style={analysisHeader}>
+      <div style={analysisTitle}>
+        🧠 Smart AI Анализ
       </div>
-    )}
-  </div>
 
-  <div style={adviceBox}>
-    {smartAdvice().map((a: string, i: number) => (
-  <div key={i}>{a}</div>
-))}
-  </div>
-
-  <div style={{ marginTop: "10px" }}>
-    {top3.map((c: any, i: number) => (
-      <div key={i} style={topRow}>
-        <span>{c[0]}</span>
-        <span>{c[1]}</span>
+      <div style={analysisBadge}>
+        AI
       </div>
-    ))}
-  </div>
+    </div>
+
+    {/* SCORE */}
+    <div style={scoreBox}>
+      <div>
+        <div style={scoreLabel}>
+          Финансовое здоровье
+        </div>
+
+        <div style={scoreValue}>
+          74%
+        </div>
+      </div>
+
+      <div style={scoreEmoji}>
+        📈
+      </div>
+    </div>
+
+    {/* PLAN */}
+    <div style={section}>
+      <div style={sectionTitle}>
+        💰 План погашения
+      </div>
+
+      <div style={{
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  marginBottom: "12px"
+}}>
+
+  <button
+    onClick={() => setPlanMode("minimum")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      borderRadius: "10px",
+      border: "none",
+      background:
+        planMode === "minimum"
+          ? "#22c55e"
+          : "#1e293b",
+      color: "white"
+    }}
+  >
+    💸 Минимальный
+  </button>
+
+  <button
+    onClick={() => setPlanMode("balanced")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      borderRadius: "10px",
+      border: "none",
+      background:
+        planMode === "balanced"
+          ? "#22c55e"
+          : "#1e293b",
+      color: "white"
+    }}
+  >
+    ⚖️ Сбалансированный
+  </button>
+
+  <button
+    onClick={() => setPlanMode("aggressive")}
+    style={{
+      flex: 1,
+      padding: "10px",
+      borderRadius: "10px",
+      border: "none",
+      background:
+        planMode === "aggressive"
+          ? "#22c55e"
+          : "#1e293b",
+      color: "white"
+    }}
+  >
+    🚀 Агрессивный 
+  </button>
+
 </div>
 
-      <TransactionList
-        transactions={filteredTransactions}
-        visibleCount={visibleCount}
-        setVisibleCount={setVisibleCount}
-        expanded={expanded}
-        setExpanded={setExpanded}
-        onDelete={deleteTransaction}
-        onEdit={(tx: any) => {
-          setEditTx(tx);
-          setIsModalOpen(true);
-        }}
-      />
+<div style={sectionText}>
+
+  Платёж:
+  <br />
+
+  <b>
+    {selectedPlan.payment?.toLocaleString()} сум
+  </b>
+
+  <br />
+  <br />
+
+  Срок:
+  <br />
+
+  <b>
+    ~ {selectedPlan.months} мес.
+  </b>
+
+</div>
+
+      {plan.months && (
+        <div style={greenText}>
+          Платёжный план активен
+        </div>
+      )}
+    </div>
+
+    {/* STRATEGY */}
+    <div style={section}>
+      <div style={sectionTitle}>
+        🚀 Как быстрее закрыть долги
+      </div>
+
+      <div style={tipCard}>
+
+  💼 Доп. доход
+  +{Number(extraIncome || 0).toLocaleString()}
+
+  сократит срок на {
+
+    Math.max(savedMonths,)
+
+  } мес.
+
+</div>
+    </div>
+
+<input
+  type="number"
+  placeholder="Доп. доход в месяц"
+
+  value={extraIncome}
+
+  onChange={(e) =>
+  setExtraIncome(
+    e.target.value
+  )
+}
+
+  style={{
+    width: "100%",
+    marginTop: "10px",
+    padding: "12px",
+    borderRadius: "12px",
+    border: "none",
+    background: "#1e293b",
+    color: "white"
+  }}
+/>
+  
+  </div>
+  
+</div>
+
+      
 
       <button
         style={fab}
@@ -304,7 +503,8 @@ const container: React.CSSProperties = {
   paddingBottom: "100px",
   color: "white",
   minHeight: "100vh",
-  background: "#020617"
+  background: "#020617",
+  position: "relative"
 };
 
 const balanceBox: React.CSSProperties = {
@@ -379,15 +579,30 @@ const topRow: React.CSSProperties = {
 
 const fab: React.CSSProperties = {
   position: "fixed",
-  bottom: "80px",
-  right: "20px",
-  width: "65px",
-  height: "65px",
-  borderRadius: "50%",
-  background: "#7c3aed",
-  color: "#fff",
-  fontSize: "32px",
-  border: "none"
+
+  left: "50%",
+  transform: "translateX(140px)",
+
+  bottom: "90px",
+
+  width: "55px",
+  height: "55px",
+
+  borderRadius: "35%",
+  background: "linear-gradient(135deg, #16a34a, #15803d)",
+
+  color: "#2f2828",
+  fontSize: "45px",
+  border: "none",
+
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+
+  boxShadow: "0 8px 20px rgba(22,163,74,0.5)",
+  cursor: "pointer",
+
+  zIndex: 1000
 };
 
 const forecastBox: React.CSSProperties = {
@@ -418,6 +633,98 @@ const aiBox: React.CSSProperties = {
   whiteSpace: "pre-line"
 };
 
+const analysisCard: React.CSSProperties = {
+  background: "linear-gradient(135deg,#0f172a,#111827)",
+  borderRadius: "24px",
+  padding: "18px",
+  border: "1px solid rgba(255,255,255,0.05)"
+};
+
+const analysisHeader: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center"
+};
+
+const analysisTitle: React.CSSProperties = {
+  fontSize: "20px",
+  fontWeight: "700"
+};
+
+const analysisBadge: React.CSSProperties = {
+  background: "#22c55e",
+  color: "black",
+  padding: "4px 10px",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "700"
+};
+
+const scoreBox: React.CSSProperties = {
+  marginTop: "20px",
+  background: "#111827",
+  padding: "18px",
+  borderRadius: "18px",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center"
+};
+
+const scoreLabel: React.CSSProperties = {
+  opacity: 0.7,
+  fontSize: "13px"
+};
+
+const scoreValue: React.CSSProperties = {
+  fontSize: "36px",
+  fontWeight: "800",
+  marginTop: "5px"
+};
+
+const scoreEmoji: React.CSSProperties = {
+  fontSize: "42px"
+};
+
+const section: React.CSSProperties = {
+  marginTop: "20px"
+};
+
+const sectionTitle: React.CSSProperties = {
+  fontWeight: "700",
+  marginBottom: "10px"
+};
+
+const sectionText: React.CSSProperties = {
+  background: "#1e293b",
+  padding: "14px",
+  borderRadius: "14px",
+  lineHeight: "1.5"
+};
+
+const greenText: React.CSSProperties = {
+  marginTop: "8px",
+  color: "#22c55e",
+  fontSize: "13px",
+  fontWeight: "600"
+};
+
+const tipCard: React.CSSProperties = {
+  marginTop: "10px",
+  background: "#132a1c",
+  color: "#86efac",
+  padding: "14px",
+  borderRadius: "14px",
+  lineHeight: "1.4"
+};
+
+const adviceCard: React.CSSProperties = {
+  marginTop: "10px",
+  background: "#1e293b",
+  padding: "14px",
+  borderRadius: "14px",
+  lineHeight: "1.4"
+};
+
 const getCategoryIcon = (name: string) => {
   const map: any = {
     "Еда": "🍔",
@@ -429,4 +736,6 @@ const getCategoryIcon = (name: string) => {
   };
 
   return map[name] || "📊";
+
+  
 };

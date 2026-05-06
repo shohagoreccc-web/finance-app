@@ -4,26 +4,40 @@ import { useState } from "react";
 
 export const TransactionList = ({
   transactions,
-  visibleCount,
-  setVisibleCount,
   expanded,
   setExpanded,
   onDelete,
   onEdit
 }: any) => {
+
   const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const handleDelete = (id: string) => {
+  // 🔥 правильное отображение
+  const displayed = expanded
+    ? transactions
+    : transactions.slice(0, 4);
+
+  const handleDelete = async (id: string) => {
     setRemovingId(id);
+
+    try {
+      console.log("🗑 DELETE:", id);
+
+      await onDelete(id); // 🔥 ВАЖНО await
+
+    } catch (e) {
+      console.error("DELETE ERROR:", e);
+    }
+
     setTimeout(() => {
-      onDelete(id);
       setRemovingId(null);
-    }, 250);
+    }, 200);
   };
 
   return (
     <div style={{ marginTop: "15px" }}>
-      {transactions.slice(0, visibleCount).map((t: any) => (
+
+      {displayed.map((t: any) => (
         <div
           key={t.id}
           style={{
@@ -37,16 +51,11 @@ export const TransactionList = ({
             alignItems: "center",
             opacity: removingId === t.id ? 0 : 1,
             transform: removingId === t.id ? "scale(0.95)" : "scale(1)",
-            transition: "all 0.3s ease",
+            transition: "all 0.25s ease",
             cursor: "pointer"
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.02)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-          }}
         >
+
           {/* ЛЕВАЯ ЧАСТЬ */}
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div style={{
@@ -89,29 +98,40 @@ export const TransactionList = ({
               marginTop: 6,
               justifyContent: "flex-end"
             }}>
-              <button onClick={() => onEdit(t)} style={btnSecondary}>✏️</button>
-              <button onClick={() => handleDelete(t.id)} style={btnDanger}>🗑</button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(t);
+                }}
+                style={btnSecondary}
+              >
+                ✏️
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(t.id);
+                }}
+                style={btnDanger}
+              >
+                🗑
+              </button>
             </div>
           </div>
         </div>
       ))}
 
-      {transactions.length > 6 && (
+      {/* 🔥 КНОПКА */}
+      {transactions.length > 4 && (
         <button
-          onClick={() => {
-            if (expanded) {
-              setVisibleCount(6);
-              setExpanded(false);
-            } else {
-              setVisibleCount(transactions.length);
-              setExpanded(true);
-            }
-          }}
+          onClick={() => setExpanded(!expanded)}
           style={btnMore}
         >
-          {expanded ? "Свернуть" : "Показать ещё"}
+          {expanded ? "Скрыть" : "Показать ещё"}
         </button>
       )}
+
     </div>
   );
 };

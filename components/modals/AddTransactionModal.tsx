@@ -37,26 +37,26 @@ export const AddTransactionModal = ({
   }, [editTx]);
 
   const submit = () => {
-    if (!title || !amount || !category) return;
+  if (!title || !amount || !category) return;
 
-    const tx: Tx = {
-      id: editTx?.id || Date.now().toString(),
-      title,
-      amount: Number(amount),
-      type,
-      currency,
-      category,
-      date: editTx?.date || new Date().toISOString()
-    };
-
-    if (editTx && onUpdate) {
-      onUpdate(tx);
-    } else {
-      onAdd(tx);
-    }
-
-    onClose();
+  const tx: Tx = {
+    id: editTx?.id,
+    title,
+    amount: Number(amount),
+    type,
+    currency,
+    category,
+    date: editTx?.date || new Date().toISOString()
   };
+
+  if (editTx && onUpdate) {
+    onUpdate(tx);
+  } else {
+    onAdd(tx);
+  }
+
+  onClose();
+};
 
   return (
     <div style={overlay}>
@@ -88,7 +88,6 @@ export const AddTransactionModal = ({
           >
             <option value="expense">Расход</option>
             <option value="income">Доход</option>
-            <option value="debt">Долг</option>
           </select>
 
           <select

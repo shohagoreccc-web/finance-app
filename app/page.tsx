@@ -13,19 +13,15 @@ import { Toast } from "@/components/ui/toast";
 import { BottomNav } from "@/components/ui/BottomNav";
 import { DebtsScreen } from "@/components/screens/DebtsScreen";
 import { OnboardingScreen } from "@/components/screens/OnboardingScreen";
-import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { collection, addDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { useState, useEffect } from "react";
 import { PieChart, Pie, Tooltip, Cell } from "recharts";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 import { auth } from "../lib/firebase";
-import { serverTimestamp } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import { useGoals } from "@/hooks/useGoals";
 import { useFinance } from "@/hooks/useFinance";
 import { askAI } from "@/services/ai";
-
 import { addTransactionService } from "@/services/transactions";
 import { deleteTransactionService } from "@/services/transactions";
 import { getDebts } from "@/utils/calculations";
@@ -33,6 +29,18 @@ import { filterByPeriod, getStats } from "@/lib/stats";
 import { useMemo } from "react";
 import { updateTransactionService } from "@/services/transactions";
 import { calculateBalance, getDayStats } from "@/utils/finance";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  query,
+  where,
+  onSnapshot,
+  serverTimestamp
+} from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -46,16 +54,16 @@ import {
 export default function Home() {
   const [pressed, setPressed] = useState(false);
   const [page, setPage] = useState("home");
+  const { user, loading } = useAuth();
   const {
   transactions,
   addTransaction,
   deleteTransaction,
   updateTransaction
-} = useFinance();
+} = useFinance(user);
 
   const COLORS = ["#00ffae", "#ff4d6d", "#ffd166", "#4dabf7"];
 
-  const { user, loading } = useAuth();
   useEffect(() => {
   if (!user) return;
 
@@ -79,6 +87,27 @@ export default function Home() {
 
   checkProfile();
 }, [user]);
+
+useEffect(() => {
+  if (!user) return;
+
+  const q = query(
+    collection(db, "debts"),
+    where("userId", "==", user.uid)
+  );
+
+  const unsub = onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    setDebts(data);
+  });
+
+  return () => unsub();
+}, [user]);
+
   // ✅ ПОТОМ расчёты (ВАЖНО!)
   const dayStats = getStats(filterByPeriod(transactions, "day"));
   const weekStats = getStats(filterByPeriod(transactions, "week"));
@@ -94,6 +123,7 @@ export default function Home() {
   const textToSend = customText || input;
   if (!textToSend) return;
 
+  
   const userMsg = { role: "user", text: textToSend };
 
   const newMessages = [...messages, userMsg];
@@ -113,7 +143,8 @@ export default function Home() {
   const [aiAdvice, setAiAdvice] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
   useEffect(() => {
-  if (!transactions || transactions.length === 0) return;
+  if (!transactions || transactions.length < 2) return;
+  console.log("TRANSACTIONS:", transactions);
 
   const runAI = async () => {
     setLoadingAI(true);
@@ -135,6 +166,9 @@ export default function Home() {
   const [filterType, setFilterType] = useState("all");
 
   const { goals } = useGoals(user);
+  const [debts, setDebts] = useState<any[]>([]);
+  const [debtName, setDebtName] = useState("");
+  const [debtAmount, setDebtAmount] = useState("");
 
   const [goalName, setGoalName] = useState("");
   const [goalAmount, setGoalAmount] = useState("");
@@ -365,11 +399,8 @@ if (!user) {
       />
 
       <button
-  onMouseDown={() => setPressed(true)}
-  onMouseUp={() => setPressed(false)}
-  onMouseLeave={() => setPressed(false)}
-
   onClick={async () => {
+
     if (!email || !email.includes("@")) {
       alert("Введи норм email");
       return;
@@ -383,28 +414,58 @@ if (!user) {
     setAuthLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+
+      await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
     } catch (e: any) {
+
       alert(e.message);
+
     } finally {
+
       setAuthLoading(false);
+
     }
+
   }}
 
   disabled={authLoading}
 
   style={{
-    width: "100%",
-    marginTop: "10px",
-    padding: "12px",
-    background: authLoading ? "#555" : "#00ffae",
-    border: "none",
-    borderRadius: "10px",
-    transition: "0.1s",
-    transform: pressed ? "scale(0.95)" : "scale(1)"
+
+    width:"100%",
+
+    marginTop:"10px",
+
+    padding:"12px",
+
+    background:
+      authLoading
+        ? "#555"
+        : "#1ec30f",
+
+    border:"none",
+
+    borderRadius:"10px",
+
+    transition:"0.1s",
+
+    transform:
+      pressed
+        ? "scale(0.95)"
+        : "scale(1)"
+
   }}
 >
-  {authLoading ? "⏳ Входим..." : "Войти"}
+
+  {authLoading
+    ? "⏳ Вход..."
+    : "Войти"}
+
 </button>
 
       <button
@@ -429,7 +490,7 @@ if (!user) {
           width:"100%",
           marginTop:"10px",
           padding:"12px",
-          background:"#4dabf7",
+          background:"#37d8e3",
           border:"none",
           borderRadius:"10px"
         }}
@@ -451,10 +512,38 @@ if (user && hasProfile === null) {
 // ❗ если нет анкеты → показываем онбординг
 if (user && hasProfile === false) {
   return (
-    <OnboardingScreen
-      user={user}
-      onFinish={() => setHasProfile(true)}
-    />
+
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "#0f172a",
+        display: "flex",
+        justifyContent: "center",
+        padding: "20px"
+      }}
+    >
+
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "430px",
+          minHeight: "100vh",
+          background: "#020617",
+          borderRadius: "30px",
+          padding: "16px",
+          boxShadow: "0 0 40px rgba(0,0,0,0.45)"
+        }}
+      >
+
+        <OnboardingScreen
+          user={user}
+          onFinish={() => setHasProfile(true)}
+        />
+
+      </div>
+
+    </div>
+
   );
 }
 
@@ -481,19 +570,101 @@ const addGoal = async () => {
   setGoalName("");
   setGoalAmount("");
 };
+
+const addDebt = async (
+  currency: string
+) => {
+
+  if (!debtName || !debtAmount) {
+    return;
+  }
+
+  await addTransaction({
+
+    title: debtName,
+
+    amount: Number(debtAmount),
+
+    type: "debt",
+
+    currency
+
+  });
+
+  setDebtName("");
+  setDebtAmount("");
+
+};
+const deleteDebt = async (id: string) => {
+  try {
+    await deleteDoc(doc(db, "debts", id)); // ✅ ВОТ ПРАВИЛЬНО
+  } catch (e) {
+    console.error("Ошибка удаления:", e);
+  }
+};
+const payDebt = async (debt: any) => {
+  const amount = prompt("Сколько погасить?");
+  if (!amount) return;
+
+  await addDoc(collection(db, "transactions"), {
+    type: "debt_payment",
+    amount: Number(amount),
+    debtId: debt.id,
+    userId: user.uid,
+    createdAt: serverTimestamp()
+  });
+};
+const addToGoal = async (goal: any) => {
+  const amount = prompt("Сколько добавить?");
+  if (!amount) return;
+
+  await addDoc(collection(db, "transactions"), {
+    type: "goal",
+    amount: Number(amount),
+    goalId: goal.id,
+    userId: user.uid,
+    createdAt: new Date()
+  });
+};
 const appWrapper = {
+
   minHeight: "100vh",
+
   background: "#0f0f1a",
+
   display: "flex",
-  justifyContent: "center"
+
+  justifyContent: "center",
+
+  alignItems: "flex-start",
+
+  padding: "20px"
+
 };
 
 const container = {
+
   width: "100%",
-  maxWidth: "420px", // 🔥 фикс ширины как в моб приложениях
+
+  maxWidth: "430px",
+
+  minHeight: "100vh",
+
   margin: "0 auto",
+
   padding: "16px",
-  paddingBottom: "100px"
+
+  paddingBottom: "100px",
+
+  background: "#020617",
+
+  borderRadius: "30px",
+
+  overflow: "hidden",
+
+  boxShadow:
+    "0 0 40px rgba(0,0,0,0.45)"
+
 };
 
 const overlay: React.CSSProperties = {
@@ -528,13 +699,13 @@ const closeBtn = {
       {/* HOME */}
       {page === "home" && (
         <HomeScreen
-          safeTransactions={transactions}
-          addTransaction={addTransaction}
-          deleteTransaction={deleteTransaction}
-          updateTransaction={updateTransaction}
-          aiAdvice={aiAdvice}
-          loadingAI={loadingAI}
-        />
+  transactions={transactions}
+  addTransaction={addTransaction}
+  deleteTransaction={deleteTransaction}
+  updateTransaction={updateTransaction}
+  aiAdvice={aiAdvice}
+  loadingAI={loadingAI}
+/>
       )}
 
       {/* CHAT */}
@@ -558,15 +729,35 @@ const closeBtn = {
           goalCurrency={goalCurrency}
           setGoalCurrency={setGoalCurrency}
           addGoal={addGoal}
+          addToGoal={addToGoal}
           safeTransactions={transactions}
           user={user}
           deleteGoal={deleteGoal}
+          
         />
       )}
 
       {/* DEBTS */}
       {page === "debts" && (
-        <DebtsScreen safeTransactions={transactions} />
+        <DebtsScreen
+  debts={transactions.filter(
+    (t: any) => t.type === "debt"
+  )}
+
+  transactions={transactions}
+
+  debtName={debtName}
+  setDebtName={setDebtName}
+
+  debtAmount={debtAmount}
+  setDebtAmount={setDebtAmount}
+
+  addDebt={addDebt}
+
+  payDebt={payDebt}
+
+  deleteDebt={deleteTransaction}
+/>
       )}
 
       {/* PROFILE */}
@@ -590,19 +781,21 @@ const closeBtn = {
     />
 
     {isModalOpen && (
-      <AddTransactionModal
-        onClose={() => setIsModalOpen(false)}
-        onAdd={async (data: any) => {
-          await addTransactionService(user, {
-            amount: data.amount,
-            type: data.type,
-            title: data.title,
-            category: data.category,
-            currency: (data.currency || "UZS").toUpperCase()
-          });
-        }}
-      />
-    )}
+  <AddTransactionModal
+    onClose={() => setIsModalOpen(false)}
+    onAdd={async (data: any) => {
+      console.log("ADDING:", data);
+
+      await addTransaction({
+        amount: data.amount,
+        type: data.type,
+        title: data.title,
+        category: data.category,
+        currency: (data.currency || "UZS").toUpperCase()
+      });
+    }}
+  />
+)}
 
     {/* ПРОСМОТР ТРАНЗАКЦИИ */}
     {selectedTx && (

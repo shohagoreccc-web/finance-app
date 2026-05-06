@@ -16,7 +16,7 @@ export const AIScreen = ({ transactions }: any) => {
   []
 );
 
-    setAnswer(res.answer);
+    setAnswer(res);
     setLoading(false);
   };
 
